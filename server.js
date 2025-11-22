@@ -51,7 +51,9 @@ const Disc = mongoose.model('Disc', discSchema);
 
 
 // Подключение к MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+    dbName: 'test' // <--- ДОБАВЬТЕ ЭТУ ОПЦИЮ с правильным именем вашей БД в Atlas
+})
     .then(() => console.log('✅ MongoDB подключена успешно'))
     .catch(err => {
         console.error('❌ Ошибка подключения к MongoDB:', err);
@@ -68,7 +70,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // --- НОВАЯ НАСТРОЙКА CORS ---
 // Определяем corsOptions и применяем его
 const corsOptions = {
-    origin: 'https://wheelproknagu.ru', // Разрешаем запросы с вашего домена
+    origin: 'https://wheel2.onrender.com', // Разрешаем запросы с вашего домена
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     optionsSuccessStatus: 204
