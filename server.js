@@ -3,12 +3,11 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const cors = require('cors'); // Эту строку оставляем
+const cors = require('cors');
 const bodyParser = require('body-parser');
 
 // --- ИМПОРТЫ (ТОЛЬКО НЕОБХОДИМЫЕ БИБЛИОТЕКИ) ---
-const axios = require('axios'); // Для скачивания изображений по URL
-// sharp больше не нужен без создания масок, но оставим его импорт для надежности
+const axios = require('axios');
 const sharp = require('sharp'); // Можно удалить, если не используете
 
 dotenv.config();
@@ -17,25 +16,22 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // -----------------------------------------------------
-// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ И СХЕМЫ (С НОВЫМ ПОЛЕМ)
+// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ И СХЕМЫ
 // -----------------------------------------------------
 
-// --- ИЗМЕНЕНИЕ: Добавляем predefined_combinations в схему Car ---
 const carSchema = new mongoose.Schema({
     make: String,
     model: String,
-    image: String, // URL изображения автомобиля
+    image: String,
     predefined_combinations: [
         {
-            disc_brand: String,    // Бренд диска (например, 'Vossen')
-            disc_diameter: Number, // Диаметр диска
-            // Если нужно, добавьте другие характеристики диска для точного поиска
-            predefined_image_url: String // URL заранее подготовленного изображения
+            disc_brand: String,
+            disc_diameter: Number,
+            predefined_image_url: String
         }
     ]
 });
 const Car = mongoose.model('Car', carSchema);
-// -------------------------------------------------------------------
 
 const discSchema = new mongoose.Schema({
     brand: String,
@@ -45,7 +41,7 @@ const discSchema = new mongoose.Schema({
     et: Number,
     dia: Number,
     price: Number,
-    image_url: String, // URL изображения диска
+    image_url: String,
 });
 const Disc = mongoose.model('Disc', discSchema);
 
@@ -61,17 +57,19 @@ mongoose.connect(process.env.MONGO_URI, {
     });
 
 // -----------------------------------------------------
-// 2. MIDDLEWARE И НАСТРОЙКИ (AI УДАЛЕНЫ)
+// 2. MIDDLEWARE И НАСТРОЙКИ
 // -----------------------------------------------------
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // --- НОВАЯ НАСТРОЙКА CORS ---
-// Определяем corsOptions и применяем его
-app.use(cors()); // Это разрешит запросы со всех доменов
+app.use(cors());
 
-// -----------------------------------------------------
+// --- Добавление корневого маршрута, чтобы избежать ошибки "Cannot GET /" ---
+app.get('/', (req, res) => {
+    res.send('API Server is running successfully!');
+});
 
 
 // --- Вспомогательные функции для работы с изображениями ---
@@ -97,11 +95,11 @@ async function getImageBase64(imageUrlOrBase64, mimeType = null) {
 }
 
 // -----------------------------------------------------
-// 3. МАРШРУТЫ (API)
+// 3. МАРШРУТЫ (API) - ПРЕФИКС /api УДАЛЕН
 // -----------------------------------------------------
 
-// Маршруты /api/cars, /api/discs, /api/disc-options - Без изменений
-app.get('/api/cars', async (req, res) => {
+// БЫЛО: /api/cars, СТАЛО: /cars
+app.get('/cars', async (req, res) => {
     try {
         const cars = await Car.find({});
         res.json(cars);
@@ -110,7 +108,8 @@ app.get('/api/cars', async (req, res) => {
     }
 });
 
-app.get('/api/discs', async (req, res) => {
+// БЫЛО: /api/discs, СТАЛО: /discs
+app.get('/discs', async (req, res) => {
     try {
         const { diameter, width, pcd, et } = req.query;
         const filter = {};
@@ -125,7 +124,8 @@ app.get('/api/discs', async (req, res) => {
     }
 });
 
-app.get('/api/disc-options', async (req, res) => {
+// БЫЛО: /api/disc-options, СТАЛО: /disc-options
+app.get('/disc-options', async (req, res) => {
     try {
         const [diameters, widths, pcds, ets] = await Promise.all([
             Disc.distinct('diameter').sort(),
@@ -140,8 +140,8 @@ app.get('/api/disc-options', async (req, res) => {
 });
 
 
-// --- НОВОЕ: Маршрут /api/replace-wheels (ТОЛЬКО ПОИСК ЗАГОТОВОК) ---
-app.post('/api/replace-wheels', async (req, res) => {
+// БЫЛО: /api/replace-wheels, СТАЛО: /replace-wheels
+app.post('/replace-wheels', async (req, res) => {
     try {
         // Ожидаем ID автомобиля и ID диска
         let { carId, discId } = req.body;
