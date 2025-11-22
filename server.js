@@ -69,13 +69,8 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // --- НОВАЯ НАСТРОЙКА CORS ---
 // Определяем corsOptions и применяем его
-const corsOptions = {
-    origin: 'https://wheel2.onrender.com', // Разрешаем запросы с вашего домена
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-    optionsSuccessStatus: 204
-};
-app.use(cors(corsOptions)); // Применяем cors с нужными опциями
+app.use(cors()); // Это разрешит запросы со всех доменов
+
 // -----------------------------------------------------
 
 
