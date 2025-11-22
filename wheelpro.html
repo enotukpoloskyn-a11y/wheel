@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подбор и примерка автомобильных дисков</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f7fafc;
+    }
+    .disc-card {
+        min-height: 450px;
+    }
+    .disc-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+    /* Стиль для области примерки диска на авто */
+    #carImageContainer {
+        position: relative;
+        background-color: #f0f4f8;
+        border-radius: 12px;
+        overflow: hidden;
+        width: 100%;
+        height: 0;
+        padding-bottom: 50%; /* Соотношение 2:1 */
+    }
+
+    #carImage {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* ГАРАНТИРУЕМ, что изображение не будет обрезано, а ВМЕСТИТСЯ полностью */
+        transition: opacity 0.3s ease-in-out; 
+    }
+    
+    /* --- УДАЛЕНЫ СТИЛИ ДЛЯ AI-ИНДИКАТОРА --- */
+    /* .ai-loading-overlay, .ai-loading-spinner, @keyframes spin - больше не нужны */
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-gray-900 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-white">WHEEL FINDER <span class="text-yellow-400"></h1>
+            <nav>
+                <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Каталог</a>
+                <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">О нас</a>
+                <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Контакты</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 class="text-3xl font-extrabold text-gray-900 mb-6 text-center">Виртуальная примерка и подбор дисков</h2>
+
+        <div class="bg-white p-6 md:p-8 rounded-xl shadow-2xl mb-10 border border-gray-100">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">1. Примерка на авто</h3>
+            
+            <div id="carSelectors" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="carMake" class="block text-sm font-medium text-gray-700 mb-1">Марка автомобиля (База)</label>
+                    <select id="carMake" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out bg-gray-50">
+                        </select>
+                </div>
+                <div>
+                    <label for="carModel" class="block text-sm font-medium text-gray-700 mb-1">Модель автомобиля (База)</label>
+                    <select id="carModel" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out bg-gray-50">
+                           </select>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 space-y-3 pt-2 border-t border-gray-200 mt-6 pt-6">
+                <label for="carUpload" class="block text-lg font-bold text-gray-800">Или загрузите свою фотографию (Примерка только для авто из базы)</label>
+                <input type="file" id="carUpload" accept="image/*" class="w-full text-sm text-gray-700
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-full file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-yellow-50 file:text-yellow-700
+                    hover:file:bg-yellow-100
+                "/>
+                <button id="clearImageButton" onclick="clearCustomCarImage()" class="w-full py-2 bg-red-500 text-white font-medium rounded-lg shadow-md hover:bg-red-600 transition hidden">
+                    Очистить загруженное фото
+                </button>
+            </div>
+
+            <div id="carImageContainer" class="w-full mt-6 relative">
+                <img id="carImage" src="https://placehold.co/800x400/000000/ffffff?text=Выберите+автомобиль" alt="Выбранный автомобиль" class="w-full object-contain rounded-xl">
+                </div>
+            <p id="fitmentMessage" class="mt-4 text-center text-gray-600 font-medium">Выберите марку/модель авто.</p>
+        </div>
+
+        <h3 class="text-2xl font-bold text-gray-800 mb-4 mt-8 text-center">2. Подбор по параметрам</h3>
+        <div class="bg-white p-6 md:p-8 rounded-xl shadow-2xl mb-10 border border-gray-100">
+            <form id="selectionForm" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                <div>
+                    <label for="diameter" class="block text-sm font-medium text-gray-700 mb-1">Диаметр (R)</label>
+                    <select id="diameter" name="diameter" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 transition duration-150 ease-in-out bg-gray-50">
+                        <option value="">Любой</option>
+                        </select>
+                </div>
+
+                <div>
+                    <label for="width" class="block text-sm font-medium text-gray-700 mb-1">Ширина (J)</label>
+                    <select id="width" name="width" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 transition duration-150 ease-in-out bg-gray-50">
+                        <option value="">Любая</option>
+                        </select>
+                </div>
+
+                <div>
+                    <label for="pcd" class="block text-sm font-medium text-gray-700 mb-1">PCD (Болты x Ø)</label>
+                    <select id="pcd" name="pcd" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 transition duration-150 ease-in-out bg-gray-50">
+                        <option value="">Любой</option>
+                        </select>
+                </div>
+
+                <div>
+                    <label for="et" class="block text-sm font-medium text-gray-700 mb-1">Вылет (ET)</label>
+                    <select id="et" name="et" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 transition duration-150 ease-in-out bg-gray-50">
+                        <option value="">Любой</option>
+                        </select>
+                </div>
+
+            </form>
+            <div class="flex justify-center mt-6">
+                    <button onclick="applyFilter()" type="button" class="w-full md:w-auto px-6 py-3 bg-yellow-500 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 ease-in-out transform hover:scale-105">
+                    Показать диски
+                </button>
+            </div>
+        </div>
+
+        <div id="resultsContainer">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">Результаты подбора (цена за штуку)</h3>
+            <div id="loadingIndicator" class="hidden text-center py-10">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto"></div>
+                <p class="mt-2 text-gray-600">Загрузка товаров...</p>
+            </div>
+            <div id="discGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                </div>
+            <p id="noResults" class="hidden text-center text-xl text-gray-500 py-10 bg-white rounded-xl shadow-lg">
+                По вашему запросу ничего не найдено. Попробуйте изменить параметры.
+            </p>
+        </div>
+
+    </main>
+
+    <footer class="bg-gray-900 mt-10">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:lg-8 text-center text-gray-400 text-sm">
+            <p>&copy; 2025 Wheel Finder Pro. Все права защищены. Имитация сайта подбора дисков с функцией примерки.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- КОНСТАНТЫ И НАСТРОЙКИ ---
+        const API_BASE_URL = 'https://wheelproknagu.ru/api';
+        
+        // --- DOM Elements ---
+        const discGrid = document.getElementById('discGrid');
+        const diameterSelect = document.getElementById('diameter');
+        const widthSelect = document.getElementById('width');
+        const pcdSelect = document.getElementById('pcd');
+        const etSelect = document.getElementById('et');
+        const noResults = document.getElementById('noResults');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const carMakeSelect = document.getElementById('carMake');
+        const carModelSelect = document.getElementById('carModel');
+        const carImage = document.getElementById('carImage');
+        const fitmentMessage = document.getElementById('fitmentMessage');
+        const carUploadInput = document.getElementById('carUpload');
+        const clearImageButton = document.getElementById('clearImageButton');
+
+        // Глобальные переменные для хранения данных из БД и состояния
+        let allDiscs = [];
+        let allCars = [];
+        let selectedCarId = null; // ID выбранного автомобиля
+        let selectedDiscId = null; // ID выбранного диска (будет присвоен при клике "Примерить")
+
+        // --- Вспомогательная функция для отображения загрузки (для запросов к БД) ---
+        function showLoadingSpinner(elementId) {
+            document.getElementById(elementId).classList.remove('hidden');
+        }
+
+        function hideLoadingSpinner(elementId) {
+            document.getElementById(elementId).classList.add('hidden');
+        }
+
+        // --- ФУНКЦИИ ЗАГРУЗКИ ДАННЫХ С СЕРВЕРА ---
+
+        async function loadCarData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/cars`);
+                if (!response.ok) throw new Error('Не удалось загрузить автомобили');
+                allCars = await response.json();
+                populateCarSelectors();
+            } catch (error) {
+                console.error('Ошибка загрузки данных автомобилей:', error);
+                fitmentMessage.textContent = 'Ошибка загрузки списка авто. Проверьте соединение с сервером.';
+            }
+        }
+
+        async function loadDiscOptions() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/disc-options`);
+                if (!response.ok) throw new Error('Не удалось загрузить опции дисков');
+                const options = await response.json();
+                populate(diameterSelect, options.diameters);
+                populate(widthSelect, options.widths);
+                populate(pcdSelect, options.pcds);
+                populate(etSelect, options.ets);
+            } catch (error) {
+                console.error('Ошибка загрузки опций дисков:', error);
+            }
+        }
+
+        function populate(selectElement, values) {
+            const fragment = document.createDocumentFragment();
+            selectElement.innerHTML = '<option value="">Любой</option>';
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                fragment.appendChild(option);
+            });
+            selectElement.appendChild(fragment);
+        }
+
+        // --- ФУНКЦИИ УПРАВЛЕНИЯ АВТОМОБИЛЯМИ ---
+
+        function populateCarSelectors() {
+            const makes = [...new Set(allCars.map(car => car.make))];
+            
+            carMakeSelect.innerHTML = '<option value="">Выберите марку</option>';
+            makes.forEach(make => {
+                const option = document.createElement('option');
+                option.value = make;
+                option.textContent = make;
+                carMakeSelect.appendChild(option);
+            });
+
+            carMakeSelect.addEventListener('change', updateCarModels);
+            carModelSelect.addEventListener('change', updateFitmentCar);
+            // carUploadInput.addEventListener('change', handleImageUpload); // Отключаем загрузку фото для примерки с БД
+
+            updateCarModels();
+            updateFitmentCar();
+        }
+
+        function updateCarModels() {
+            const selectedMake = carMakeSelect.value;
+            
+            const filteredModels = allCars.filter(car => !selectedMake || car.make === selectedMake);
+            const uniqueModels = [...new Set(filteredModels.map(car => car.model))];
+
+            carModelSelect.innerHTML = '<option value="">Выберите модель</option>';
+            
+            if (selectedMake) {
+                uniqueModels.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    carModelSelect.appendChild(option);
+                });
+            }
+            updateFitmentCar();
+        }
+
+        function updateFitmentCar() {
+            const selectedModel = carModelSelect.value;
+            const selectedCar = allCars.find(car => car.model === selectedModel);
+
+            if (selectedCar) {
+                carImage.src = selectedCar.image;
+                carImage.alt = selectedCar.make + ' ' + selectedCar.model;
+                fitmentMessage.textContent = `Автомобиль: ${selectedCar.make} ${selectedCar.model}. Нажмите "Примерить на авто" на диске.`;
+                selectedCarId = selectedCar._id; // Сохраняем ID выбранного авто
+            } else {
+                carImage.src = "https://placehold.co/800x400/000000/ffffff?text=Выберите+автомобиль";
+                carImage.alt = "Выберите автомобиль";
+                fitmentMessage.textContent = "Выберите марку/модель авто.";
+                selectedCarId = null;
+            }
+        }
+
+        // --- УДАЛЕНИЕ: handleImageUpload и clearCustomCarImage (больше не нужны для примерки) ---
+        // Если хотите, чтобы загрузка фото просто отображалась, но без примерки, можно оставить.
+        // Но для текущей задачи (только БД + заготовки) это убираем.
+        /*
+        function handleImageUpload(event) { ... }
+        window.clearCustomCarImage = function() { ... }
+        */
+
+        // *** КЛЮЧЕВАЯ ОБНОВЛЕННАЯ ФУНКЦИЯ updateFitmentPreview ***
+        window.updateFitmentPreview = async function(discId) {
+            selectedDiscId = discId; // Сохраняем ID выбранного диска
+
+            if (!selectedCarId) {
+                fitmentMessage.textContent = "Пожалуйста, сначала выберите автомобиль.";
+                return;
+            }
+            if (!selectedDiscId) {
+                fitmentMessage.textContent = "Пожалуйста, сначала выберите диск.";
+                return;
+            }
+
+            fitmentMessage.textContent = "Загрузка изображения... Пожалуйста, подождите.";
+            showLoadingSpinner('loadingIndicator'); // Используем общий индикатор загрузки
+
+            try {
+                const payload = {
+                    carId: selectedCarId,
+                    discId: selectedDiscId
+                };
+
+                const replaceResponse = await fetch(`${API_BASE_URL}/replace-wheels`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const replaceData = await replaceResponse.json();
+
+                if (!replaceResponse.ok) {
+                    throw new Error(replaceData.error || replaceData.message || 'Ошибка загрузки заготовленного изображения.');
+                }
+
+                carImage.src = replaceData.resultImageBase64; // Обновляем изображение с результатом
+                fitmentMessage.textContent = replaceData.message; // Сообщение от бэкенда
+
+            } catch (error) {
+                console.error('Ошибка в процессе примерки:', error);
+                fitmentMessage.textContent = `Ошибка примерки: ${error.message}.`;
+                // В случае ошибки, вернуть к исходному изображению авто, если оно выбрано
+                const selectedCar = allCars.find(car => car._id === selectedCarId);
+                if (selectedCar) {
+                     carImage.src = selectedCar.image;
+                } else {
+                    carImage.src = "https://placehold.co/800x400/000000/ffffff?text=Ошибка";
+                }
+            } finally {
+                hideLoadingSpinner('loadingIndicator'); // Скрываем индикатор загрузки
+            }
+
+            document.getElementById('carImageContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+
+        // --- ФУНКЦИИ ОТОБРАЖЕНИЯ РЕЗУЛЬТАТОВ ---
+
+        function createDiscCard(disc) {
+            const discId = disc._id;
+            return `
+                <div class="disc-card bg-white rounded-xl shadow-lg overflow-hidden transition duration-300 border border-gray-100 p-4 flex flex-col justify-between">
+                    <div>
+                        <img src="${disc.image_url}" alt="Диск ${disc.brand} R${disc.diameter}" class="w-full h-48 object-cover rounded-lg mb-4" onerror="this.onerror=null; this.src='https://placehold.co/400x400/94a3b8/ffffff?text=Disc+Image'">
+                        <div class="p-2">
+                            <h4 class="text-xl font-bold text-gray-900 mb-1">${disc.brand} R${disc.diameter}</h4>
+                            <p class="text-3xl font-extrabold text-yellow-600 mb-3">${disc.price.toLocaleString('ru-RU')} ₽</p>
+                            <div class="text-sm text-gray-700 space-y-1">
+                                <p><span class="font-semibold">Размер:</span> ${disc.diameter}x${disc.width} J</p>
+                                <p><span class="font-semibold">PCD:</span> ${disc.pcd}</p>
+                                <p><span class="font-semibold">Вылет (ET):</span> ${disc.et}</p>
+                                <p><span class="font-semibold">DIA:</span> ${disc.dia}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="updateFitmentPreview('${discId}')" class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out font-medium shadow-md">
+                            Примерить на авто
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.applyFilter = async function() {
+            discGrid.innerHTML = '';
+            noResults.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            const params = new URLSearchParams();
+            
+            const selectedDiameter = diameterSelect.value;
+            const selectedWidth = widthSelect.value;
+            const selectedPcd = pcdSelect.value;
+            const selectedEt = etSelect.value;
+
+            if (selectedDiameter) params.append('diameter', selectedDiameter);
+            if (selectedWidth) params.append('width', selectedWidth);
+            if (selectedPcd) params.append('pcd', selectedPcd);
+            if (selectedEt) params.append('et', selectedEt);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/discs?${params.toString()}`);
+                
+                if (!response.ok) throw new Error('Ошибка при получении дисков');
+                
+                allDiscs = await response.json();
+                loadingIndicator.classList.add('hidden');
+
+                if (allDiscs.length === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    const resultsHtml = allDiscs.map(createDiscCard).join('');
+                    discGrid.innerHTML = resultsHtml;
+                }
+
+            } catch (error) {
+                console.error('Ошибка выполнения запроса фильтрации:', error);
+                loadingIndicator.classList.add('hidden');
+                discGrid.innerHTML = `<div class="col-span-4 text-center text-red-500 py-10">
+                    Ошибка связи с сервером. Пожалуйста, убедитесь, что ваш бэкенд запущен (порт 3000).
+                </div>`;
+            }
+        }
+
+        // --- Инициализация при загрузке страницы ---
+        window.onload = async function() {
+            await loadDiscOptions();
+            await loadCarData();
+            applyFilter();
+        };
+    </script>
+</body>
+</html>
