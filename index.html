@@ -50,7 +50,7 @@
             <h1 class="text-2xl font-bold text-white">WHEEL FINDER <span class="text-yellow-400"></h1>
             <nav>
                 <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Каталог</a>
-                <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">О нас</a>
+                <a href="#" onclick="openAboutUsModal(); return false;" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">О нас</a>
                 <a href="#" onclick="openModal(); return false;" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Контакты</a>
             </nav>
         </div>
@@ -160,36 +160,50 @@
         <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">
             &times;
         </button>
-        <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Свяжитесь с нами</h3>
+        <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Поговорите с нами</h3>
         <p class="text-gray-600 mb-6 text-center">Нажмите, чтобы открыть профиль в Telegram:</p>
         
         <div class="space-y-4">
             <a href="https://t.me/pohyuabsolutno" target="_blank" onclick="closeModal()"
                class="flex items-center justify-center w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out">
-                
-
-[Image of Telegram icon]
-
-                Я его сделаль
+                                Приколист -____-
             </a>
             
-            <a href="@Erema11a92" target="_blank" onclick="closeModal()"
+            <a href="https://t.me/Erema11a92" target="_blank" onclick="closeModal()"
                class="flex items-center justify-center w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out">
-                
-
-[Image of Telegram icon]
-
-                Это мистер китис
+                                Мистер китис
             </a>
             
-            <a href="@Rottened_Christ" target="_blank" onclick="closeModal()"
-               class="flex items-center justify-center w-full py-3 bg-yellow-500 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 ease-in-out">
-                
-                Трудяга из википедии
+            <a href="https://t.me/Rottened_Christ" target="_blank" onclick="closeModal()"
+               class="flex items-center justify-center w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out">
+                                Наш канал
             </a>
         </div>
     </div>
 </div>
+</div> 
+
+<div id="aboutUsModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-8 max-w-lg w-full shadow-2xl relative transform transition-all duration-300 scale-100">
+        <button onclick="closeAboutUsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">
+            &times;
+        </button>
+        <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Где мы находимся? 🤔</h3>
+        
+        <div class="flex justify-center mb-6">
+            <img src="https://avatars.dzeninfra.ru/get-zen_doc/271828/pub_65bfbe1521d8b55112cc5781_65bfd419af60205222434437/scale_1200" alt="Карта с расположением офиса" class="rounded-lg shadow-md max-w-full h-auto">
+        </div>
+        
+        <p class="text-gray-600 text-center text-lg font-semibold">
+            На самом деле, мы везде\! Но если хотите угостить нашу команду чаем, скидывайте на покушать сюда:
+        </p>
+        <p class="text-center text-2xl font-bold text-yellow-600 mt-2">
+            BTC: bc1qxyz123abc... 🍕
+        </p>
+    </div>
+</div>
+
+
     <script>
         // --- КОНСТАНТЫ И НАСТРОЙКИ ---
         const API_BASE_URL = 'https://wheel-iqdy.onrender.com';
@@ -240,6 +254,23 @@
         contactModal.addEventListener('click', (e) => {
             if (e.target === contactModal) {
                 closeModal();
+            }
+        });
+        const aboutUsModal = document.getElementById('aboutUsModal');
+
+        window.openAboutUsModal = function() {
+            aboutUsModal.classList.remove('hidden');
+            aboutUsModal.classList.add('flex');
+        };
+
+        window.closeAboutUsModal = function() {
+            aboutUsModal.classList.add('hidden');
+            aboutUsModal.classList.remove('flex');
+        };
+        // Добавляем закрытие по клику вне окна
+        aboutUsModal.addEventListener('click', (e) => {
+            if (e.target === aboutUsModal) {
+                closeAboutUsModal();
             }
         });
         // --- ФУНКЦИИ ЗАГРУЗКИ ДАННЫХ С СЕРВЕРА ---
