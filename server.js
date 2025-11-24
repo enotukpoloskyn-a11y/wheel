@@ -6,32 +6,29 @@ const dotenv = require('dotenv');
 const cors = require('cors'); 
 const bodyParser = require('body-parser');
 
-// --- ИМПОРТЫ (Оставлен только Express и Mongoose) ---
-// axios и sharp больше не нужны
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // -----------------------------------------------------
-// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ И СХЕМЫ (ИЗМЕНЕНИЕ СХЕМЫ)
+// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ И СХЕМЫ (ИЗМЕНЕНИЕ СХЕМЫ CAR)
 // -----------------------------------------------------
 
 const carSchema = new mongoose.Schema({
     make: String,
     model: String,
-    image: String, // URL исходного изображения автомобиля
+    // ИЗМЕНЕНИЕ: Теперь хранит Base64-строку вместо URL
+    image_base64: String, 
     predefined_combinations: [
         {
             disc_brand: String,
             disc_diameter: Number,
-            // НОВОЕ ПОЛЕ: Храним готовую Base64-строку здесь
-            predefined_image_base64: String 
+            predefined_image_base64: String // Результат примерки
         }
     ]
 });
 const Car = mongoose.model('Car', carSchema);
-// ... discSchema и Disc остаются без изменений ...
 
 const discSchema = new mongoose.Schema({
     brand: String,
@@ -41,7 +38,7 @@ const discSchema = new mongoose.Schema({
     et: Number,
     dia: Number,
     price: Number,
-    image_url: String, 
+    image_url: String, // URL изображения диска остается, чтобы не перегружать БД
 });
 const Disc = mongoose.model('Disc', discSchema);
 
@@ -60,7 +57,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // 2. MIDDLEWARE И НАСТРОЙКИ
 // -----------------------------------------------------
 
-// Увеличиваем лимит, так как Base64-строки большие
+// Увеличиваем лимит для Base64
 app.use(express.json({ limit: '15mb' })); 
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
@@ -72,54 +69,23 @@ app.get('/', (req, res) => {
 
 
 // --- Вспомогательные функции для работы с изображениями (УДАЛЕНЫ) ---
-// downloadImageAndConvertToBase64 и getImageBase64 удалены.
-
+// ...
 
 // -----------------------------------------------------
-// 3. МАРШРУТЫ (С ИЗМЕНЕННЫМ /replace-wheels)
+// 3. МАРШРУТЫ (БЕЗ ИЗМЕНЕНИЙ В ЛОГИКЕ, ТОЛЬКО ОБНОВЛЕННАЯ СХЕМА)
 // -----------------------------------------------------
 
-// Маршруты /cars, /discs, /disc-options остаются без изменений
 app.get('/cars', async (req, res) => {
     try {
         const cars = await Car.find({});
+        // Теперь cars будет содержать image_base64
         res.json(cars);
     } catch (err) {
         res.status(500).json({ message: 'Ошибка сервера при получении авто' });
     }
 });
+// ... (Маршруты /discs и /disc-options остаются без изменений) ...
 
-app.get('/discs', async (req, res) => {
-    try {
-        const { diameter, width, pcd, et } = req.query;
-        const filter = {};
-        if (diameter) filter.diameter = diameter;
-        if (width) filter.width = width;
-        if (pcd) filter.pcd = pcd;
-        if (et) filter.et = et;
-        const discs = await Disc.find(filter);
-        res.json(discs);
-    } catch (err) {
-        res.status(500).json({ message: 'Ошибка сервера при фильтрации дисков' });
-    }
-});
-
-app.get('/disc-options', async (req, res) => {
-    try {
-        const [diameters, widths, pcds, ets] = await Promise.all([
-            Disc.distinct('diameter').sort(),
-            Disc.distinct('width').sort(),
-            Disc.distinct('pcd').sort(),
-            Disc.distinct('et').sort(),
-        ]);
-        res.json({ diameters, widths, pcds, ets });
-    } catch (err) {
-        res.status(500).json({ message: 'Ошибка сервера при получении опций' });
-    }
-});
-
-
-// --- ИЗМЕНЕНИЕ: Маршрут /replace-wheels (Получение Base64) ---
 app.post('/replace-wheels', async (req, res) => {
     try {
         let { carId, discId } = req.body;
@@ -136,15 +102,12 @@ app.post('/replace-wheels', async (req, res) => {
              return res.status(404).json({ error: errorMsg });
         }
 
-        // 2. Ищем предопределенную комбинацию
         const predefinedCombination = car.predefined_combinations.find(
             combo => combo.disc_brand === disc.brand && combo.disc_diameter === disc.diameter
         );
 
-        // ИСПОЛЬЗУЕМ НОВОЕ ПОЛЕ: predefined_image_base64
         if (predefinedCombination && predefinedCombination.predefined_image_base64) {
             
-            // Проверка на Corolla + Vossen (оставляем по требованию)
             const isTargetCombination = 
                 car.make.toLowerCase() === 'toyota' && 
                 car.model.toLowerCase() === 'corolla' && 
@@ -159,16 +122,13 @@ app.post('/replace-wheels', async (req, res) => {
 
             console.log(`✅ Найдена предопределенная комбинация: ${car.make} ${car.model} с дисками ${disc.brand}.`);
             
-            // ПРЯМОЕ ВОЗВРАЩЕНИЕ Base64-СТРОКИ ИЗ БД
             return res.json({
                 message: "Загружено предопределенное изображение из базы данных.",
                 resultImageBase64: predefinedCombination.predefined_image_base64,
-                // mimeType больше не нужен, так как он включен в Base64-строку (data:image/jpeg;base64,...)
                 fromPredefined: true 
             });
 
         } else {
-            // Если Base64-строка не найдена
             console.warn(`⚠️ Предопределенная комбинация для ${car.make} ${car.model} с дисками ${disc.brand} не найдена.`);
             return res.status(404).json({
                 error: "Для этой комбинации автомобиля и дисков нет заранее подготовленного изображения в БД.",

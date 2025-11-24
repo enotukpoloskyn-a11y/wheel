@@ -275,8 +275,20 @@
             const selectedModel = carModelSelect.value;
             const selectedCar = allCars.find(car => car.model === selectedModel);
 
-            if (selectedCar) {
-                carImage.src = selectedCar.image;
+            // Проверяем, что автомобиль выбран И что у него есть Base64 изображение
+            if (selectedCar && selectedCar.image_base64) {
+                carImage.src = selectedCar.image_base64; // <-- ИСПОЛЬЗУЕМ Base64
+                carImage.alt = selectedCar.make + ' ' + selectedCar.model;
+                fitmentMessage.textContent = `Автомобиль: ${selectedCar.make} ${selectedCar.model}. Нажмите "Примерить на авто" на диске.`;
+                selectedCarId = selectedCar._id; // Сохраняем ID выбранного авто
+            } else {
+                // Если автомобиль не выбран или нет Base64
+                carImage.src = "https://placehold.co/800x400/000000/ffffff?text=Выберите+автомобиль";
+                carImage.alt = "Выберите автомобиль";
+                fitmentMessage.textContent = "Выберите марку/модель авто.";
+                selectedCarId = null;
+            }
+        }
                 carImage.alt = selectedCar.make + ' ' + selectedCar.model;
                 fitmentMessage.textContent = `Автомобиль: ${selectedCar.make} ${selectedCar.model}. Нажмите "Примерить на авто" на диске.`;
                 selectedCarId = selectedCar._id; // Сохраняем ID выбранного авто
@@ -333,16 +345,16 @@
                 fitmentMessage.textContent = replaceData.message; // Сообщение от бэкенда
 
             } catch (error) {
-                console.error('Ошибка в процессе примерки:', error);
-                fitmentMessage.textContent = `Ошибка примерки: ${error.message}.`;
-                // В случае ошибки, вернуть к исходному изображению авто, если оно выбрано
-                const selectedCar = allCars.find(car => car._id === selectedCarId);
-                if (selectedCar) {
-                     carImage.src = selectedCar.image;
-                } else {
-                    carImage.src = "https://placehold.co/800x400/000000/ffffff?text=Ошибка";
-                }
-            } finally {
+            console.error('Ошибка в процессе примерки:', error);
+            fitmentMessage.textContent = `Ошибка примерки: ${error.message}.`;
+            // В случае ошибки, вернуть к исходному изображению авто, если оно выбрано
+            const selectedCar = allCars.find(car => car._id === selectedCarId);
+            if (selectedCar && selectedCar.image_base64) { // Добавлена проверка на Base64
+                carImage.src = selectedCar.image_base64; // <-- ИСПОЛЬЗУЕМ НОВОЕ ПОЛЕ
+            } else {
+                carImage.src = "https://placehold.co/800x400/000000/ffffff?text=Ошибка";
+            }
+        } finally {
                 hideLoadingSpinner('loadingIndicator'); // Скрываем индикатор загрузки
             }
 
