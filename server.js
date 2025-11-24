@@ -3,35 +3,35 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const cors = require('cors');
+const cors = require('cors'); 
 const bodyParser = require('body-parser');
 
-// --- ИМПОРТЫ (ТОЛЬКО НЕОБХОДИМЫЕ БИБЛИОТЕКИ) ---
-const axios = require('axios');
-const sharp = require('sharp'); // Можно удалить, если не используете
-
+// --- ИМПОРТЫ (Оставлен только Express и Mongoose) ---
+// axios и sharp больше не нужны
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // -----------------------------------------------------
-// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ И СХЕМЫ
+// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ И СХЕМЫ (ИЗМЕНЕНИЕ СХЕМЫ)
 // -----------------------------------------------------
 
 const carSchema = new mongoose.Schema({
     make: String,
     model: String,
-    image: String,
+    image: String, // URL исходного изображения автомобиля
     predefined_combinations: [
         {
             disc_brand: String,
             disc_diameter: Number,
-            predefined_image_url: String
+            // НОВОЕ ПОЛЕ: Храним готовую Base64-строку здесь
+            predefined_image_base64: String 
         }
     ]
 });
 const Car = mongoose.model('Car', carSchema);
+// ... discSchema и Disc остаются без изменений ...
 
 const discSchema = new mongoose.Schema({
     brand: String,
@@ -41,14 +41,14 @@ const discSchema = new mongoose.Schema({
     et: Number,
     dia: Number,
     price: Number,
-    image_url: String,
+    image_url: String, 
 });
 const Disc = mongoose.model('Disc', discSchema);
 
 
 // Подключение к MongoDB
 mongoose.connect(process.env.MONGO_URI, {
-    dbName: 'test' // <--- ДОБАВЬТЕ ЭТУ ОПЦИЮ с правильным именем вашей БД в Atlas
+    dbName: 'test' 
 })
     .then(() => console.log('✅ MongoDB подключена успешно'))
     .catch(err => {
@@ -60,45 +60,26 @@ mongoose.connect(process.env.MONGO_URI, {
 // 2. MIDDLEWARE И НАСТРОЙКИ
 // -----------------------------------------------------
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// Увеличиваем лимит, так как Base64-строки большие
+app.use(express.json({ limit: '15mb' })); 
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 
-// --- НОВАЯ НАСТРОЙКА CORS ---
 app.use(cors());
 
-// --- Добавление корневого маршрута, чтобы избежать ошибки "Cannot GET /" ---
 app.get('/', (req, res) => {
     res.send('API Server is running successfully!');
 });
 
 
-// --- Вспомогательные функции для работы с изображениями ---
-async function downloadImageAndConvertToBase64(imageUrl) {
-    try {
-        const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-        const imageBuffer = Buffer.from(response.data);
-        const mimeType = response.headers['content-type'];
-        const base64 = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
-        return { base64, mimeType };
-    } catch (error) {
-        console.error(`Ошибка при скачивании или обработке изображения с URL ${imageUrl}:`, error);
-        throw new Error('Не удалось скачать или обработать изображение по URL.');
-    }
-}
-async function getImageBase64(imageUrlOrBase64, mimeType = null) {
-    if (typeof imageUrlOrBase64 === 'string' && imageUrlOrBase64.startsWith('data:')) {
-        const actualMimeType = imageUrlOrBase64.substring(imageUrlOrBase64.indexOf(':') + 1, imageUrlOrBase64.indexOf(';'));
-        return { base64: imageUrlOrBase64, mimeType: mimeType || actualMimeType || 'image/jpeg' };
-    } else {
-        return await downloadImageAndConvertToBase64(imageUrlOrBase64);
-    }
-}
+// --- Вспомогательные функции для работы с изображениями (УДАЛЕНЫ) ---
+// downloadImageAndConvertToBase64 и getImageBase64 удалены.
+
 
 // -----------------------------------------------------
-// 3. МАРШРУТЫ (API) - ПРЕФИКС /api УДАЛЕН
+// 3. МАРШРУТЫ (С ИЗМЕНЕННЫМ /replace-wheels)
 // -----------------------------------------------------
 
-// БЫЛО: /api/cars, СТАЛО: /cars
+// Маршруты /cars, /discs, /disc-options остаются без изменений
 app.get('/cars', async (req, res) => {
     try {
         const cars = await Car.find({});
@@ -108,7 +89,6 @@ app.get('/cars', async (req, res) => {
     }
 });
 
-// БЫЛО: /api/discs, СТАЛО: /discs
 app.get('/discs', async (req, res) => {
     try {
         const { diameter, width, pcd, et } = req.query;
@@ -124,7 +104,6 @@ app.get('/discs', async (req, res) => {
     }
 });
 
-// БЫЛО: /api/disc-options, СТАЛО: /disc-options
 app.get('/disc-options', async (req, res) => {
     try {
         const [diameters, widths, pcds, ets] = await Promise.all([
@@ -140,17 +119,15 @@ app.get('/disc-options', async (req, res) => {
 });
 
 
-// БЫЛО: /api/replace-wheels, СТАЛО: /replace-wheels
+// --- ИЗМЕНЕНИЕ: Маршрут /replace-wheels (Получение Base64) ---
 app.post('/replace-wheels', async (req, res) => {
     try {
-        // Ожидаем ID автомобиля и ID диска
         let { carId, discId } = req.body;
 
         if (!carId || !discId) {
             return res.status(400).json({ error: 'Требуются carId и discId.' });
         }
         
-        // 1. Получаем информацию о машине и диске из БД
         const car = await Car.findById(carId);
         const disc = await Disc.findById(discId);
 
@@ -159,23 +136,21 @@ app.post('/replace-wheels', async (req, res) => {
              return res.status(404).json({ error: errorMsg });
         }
 
-        // 2. Ищем предопределенную комбинацию для этой машины и этого диска
+        // 2. Ищем предопределенную комбинацию
         const predefinedCombination = car.predefined_combinations.find(
-            // Используем бренд и диаметр для поиска совпадения
             combo => combo.disc_brand === disc.brand && combo.disc_diameter === disc.diameter
         );
 
-        if (predefinedCombination && predefinedCombination.predefined_image_url) {
-            // Если заготовка найдена
+        // ИСПОЛЬЗУЕМ НОВОЕ ПОЛЕ: predefined_image_base64
+        if (predefinedCombination && predefinedCombination.predefined_image_base64) {
             
-            // Проверяем, что это именно Toyota Corolla и Vossen (по требованию)
+            // Проверка на Corolla + Vossen (оставляем по требованию)
             const isTargetCombination = 
                 car.make.toLowerCase() === 'toyota' && 
                 car.model.toLowerCase() === 'corolla' && 
                 disc.brand.toLowerCase() === 'vossen';
 
             if (!isTargetCombination) {
-                // Если найдена заготовка, но это не Corolla+Vossen, и мы хотим отображать только их:
                 return res.status(404).json({
                     error: "Поддерживается только комбинация Toyota Corolla + диски Vossen.",
                     message: "Пожалуйста, выберите Toyota Corolla и диски Vossen."
@@ -184,21 +159,19 @@ app.post('/replace-wheels', async (req, res) => {
 
             console.log(`✅ Найдена предопределенная комбинация: ${car.make} ${car.model} с дисками ${disc.brand}.`);
             
-            // Скачиваем изображение по URL и конвертируем его в Base64
-            const { base64: resultImageBase64, mimeType: resultMimeType } = await downloadImageAndConvertToBase64(predefinedCombination.predefined_image_url);
-            
+            // ПРЯМОЕ ВОЗВРАЩЕНИЕ Base64-СТРОКИ ИЗ БД
             return res.json({
-                message: "Загружено предопределенное изображение для данной комбинации.",
-                resultImageBase64: resultImageBase64,
-                mimeType: resultMimeType,
-                fromPredefined: true // Флаг, указывающий, что это заготовка
+                message: "Загружено предопределенное изображение из базы данных.",
+                resultImageBase64: predefinedCombination.predefined_image_base64,
+                // mimeType больше не нужен, так как он включен в Base64-строку (data:image/jpeg;base64,...)
+                fromPredefined: true 
             });
 
         } else {
-            // Если заготовка не найдена
+            // Если Base64-строка не найдена
             console.warn(`⚠️ Предопределенная комбинация для ${car.make} ${car.model} с дисками ${disc.brand} не найдена.`);
             return res.status(404).json({
-                error: "Для этой комбинации автомобиля и дисков нет заранее подготовленного изображения.",
+                error: "Для этой комбинации автомобиля и дисков нет заранее подготовленного изображения в БД.",
                 message: "Пожалуйста, выберите другую комбинацию."
             });
         }
