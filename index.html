@@ -51,7 +51,7 @@
             <nav>
                 <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Каталог</a>
                 <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">О нас</a>
-                <a href="#" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Контакты</a>
+                <a href="#" onclick="openModal(); return false;" class="text-gray-300 hover:text-white mx-3 text-sm hidden sm:inline">Контакты</a>
             </nav>
         </div>
     </header>
@@ -155,7 +155,41 @@
             <p>&copy; 2025 Wheel Finder Pro. Все права защищены. Имитация сайта подбора дисков с функцией примерки.</p>
         </div>
     </footer>
+<div id="contactModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-8 max-w-sm w-full shadow-2xl relative transform transition-all duration-300 scale-100">
+        <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold">
+            &times;
+        </button>
+        <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">Свяжитесь с нами</h3>
+        <p class="text-gray-600 mb-6 text-center">Нажмите, чтобы открыть профиль в Telegram:</p>
+        
+        <div class="space-y-4">
+            <a href="https://t.me/pohyuabsolutno" target="_blank" onclick="closeModal()"
+               class="flex items-center justify-center w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out">
+                
 
+[Image of Telegram icon]
+
+                Я его сделаль
+            </a>
+            
+            <a href="@Erema11a92" target="_blank" onclick="closeModal()"
+               class="flex items-center justify-center w-full py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out">
+                
+
+[Image of Telegram icon]
+
+                Это мистер китис
+            </a>
+            
+            <a href="@Rottened_Christ" target="_blank" onclick="closeModal()"
+               class="flex items-center justify-center w-full py-3 bg-yellow-500 text-gray-900 font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 ease-in-out">
+                
+                Трудяга из википедии
+            </a>
+        </div>
+    </div>
+</div>
     <script>
         // --- КОНСТАНТЫ И НАСТРОЙКИ ---
         const API_BASE_URL = 'https://wheel-iqdy.onrender.com';
@@ -190,7 +224,24 @@
         function hideLoadingSpinner(elementId) {
             document.getElementById(elementId).classList.add('hidden');
         }
+// --- ФУНКЦИИ УПРАВЛЕНИЯ МОДАЛЬНЫМ ОКНОМ ---
+        const contactModal = document.getElementById('contactModal');
 
+        window.openModal = function() {
+            contactModal.classList.remove('hidden');
+            contactModal.classList.add('flex'); // Используем flex для центрирования
+        };
+
+        window.closeModal = function() {
+            contactModal.classList.add('hidden');
+            contactModal.classList.remove('flex');
+        };
+        // Добавляем закрытие по клику вне окна
+        contactModal.addEventListener('click', (e) => {
+            if (e.target === contactModal) {
+                closeModal();
+            }
+        });
         // --- ФУНКЦИИ ЗАГРУЗКИ ДАННЫХ С СЕРВЕРА ---
 
         async function loadCarData() {
