@@ -288,18 +288,9 @@
                 fitmentMessage.textContent = "Выберите марку/модель авто.";
                 selectedCarId = null;
             }
-        
-                carImage.alt = selectedCar.make + ' ' + selectedCar.model;
-                fitmentMessage.textContent = `Автомобиль: ${selectedCar.make} ${selectedCar.model}. Нажмите "Примерить на авто" на диске.`;
-                selectedCarId = selectedCar._id; // Сохраняем ID выбранного авто
-            } else {
-                carImage.src = "https://placehold.co/800x400/000000/ffffff?text=Выберите+автомобиль";
-                carImage.alt = "Выберите автомобиль";
-                fitmentMessage.textContent = "Выберите марку/модель авто.";
-                selectedCarId = null;
-            }
         }
-
+           
+        
         // --- УДАЛЕНИЕ: handleImageUpload и clearCustomCarImage (больше не нужны для примерки) ---
         // Если хотите, чтобы загрузка фото просто отображалась, но без примерки, можно оставить.
         // Но для текущей задачи (только БД + заготовки) это убираем.
